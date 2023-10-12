@@ -62,7 +62,7 @@ def walk():
             user_id = os.path.basename(root)
             has_labels = user_id in user_ids_with_labels
             
-            user_dict = {'_id': user_id, 'has_labels': has_labels}
+            user_dict = {'_id': user_id, 'has_labels': has_labels, 'activities': []}
             users.append(user_dict)
 
             current_user = user_id
@@ -112,6 +112,7 @@ def walk():
                 
                 activity_dict = {'_id': current_activity, 'transportation_mode': transportation_mode, 'start_date_time': start_date_time, 'end_date_time': end_date_time}
                 activities.append(activity_dict)
+                user_dict['activities'].append(current_activity)
                 current_activity += 1
 
                 for activity_id, lat, lon, altitude, date_days, date_time in df.values.tolist():
