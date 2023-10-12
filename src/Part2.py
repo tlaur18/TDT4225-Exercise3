@@ -26,6 +26,18 @@ class GeolifeQueries:
         return [(avg_activities_per_user,)], ("AvgActivitiesPerUser",)
 
 
+    # 4: Find all users who have taken a taxi.
+    def UsersTakenTaxi(self):
+
+        # Fetch activities with taxi as transportation mode
+        taxi_activities = [activity['_id'] for activity in self.db['Activity'].find({'transportation_mode': 'taxi'})]
+
+        # Fetch users who created these activities
+        taxi_users = list(self.db['User'].find({'activities': {'$in': taxi_activities}}))
+
+        return [(user['_id'],) for user in taxi_users], ("User ID",)
+
+
 def main():
     program = None
     try:
@@ -38,6 +50,10 @@ def main():
 
         # 2: Find the average number of activities per user.
         rows, headers = program.AvgActivitiesPerUser()
+        print(tabulate(rows, headers))
+
+        # 4: Find all users who have taken a taxi.
+        rows, headers = program.UsersTakenTaxi()
         print(tabulate(rows, headers))
 
     except Exception as e:
