@@ -13,9 +13,9 @@ class DbConnector:
     """
 
     def __init__(self,
-                 DATABASE='geolife',
+                 DATABASE='new_db',
                  HOST="tdt4225-39.idi.ntnu.no",
-                 USER="whatever",
+                 USER="whatever2",
                  PASSWORD="password123"):
         uri = "mongodb://%s:%s@%s/%s" % (USER, PASSWORD, HOST, DATABASE)
         # Connect to the databases

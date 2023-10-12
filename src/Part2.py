@@ -24,6 +24,37 @@ class GeolifeQueries:
         activity_count = self.db['Activity'].count_documents({})
         avg_activities_per_user = activity_count / user_count
         return [(avg_activities_per_user,)], ("AvgActivitiesPerUser",)
+    
+    
+    # 3: Find the top 20 users with the highest number of activities.
+    def Top20UsersWithMostActivities(self):
+        
+        user_collection = self.db['User']
+
+        pipeline = [
+            {
+                '$unwind': '$activities'  # Unwind the array of activity IDs
+            },
+            {
+                '$group': {
+                    '_id': '$_id',  # Group by user ID
+                    'totalActivities': {'$sum': 1}  # Count the activities for each user
+                }
+            },
+            {
+                '$sort': {'totalActivities': -1}  # Sort in descending order
+            },
+            {
+                '$limit': 20  # Limit the results to the top 20 users
+            }
+        ]
+
+
+        result = user_collection.aggregate(pipeline)
+
+        result_list = list(result)
+
+        return [user.values() for user in result_list], ("User ID", "Number of activites")
 
 
     # 4: Find all users who have taken a taxi.
@@ -45,16 +76,22 @@ def main():
         program = GeolifeQueries()
 
         # 1: How many users, activities and trackpoints are there in the dataset (after it is inserted into the database).
-        rows, headers = program.AllTableCounts()
-        print(tabulate(rows, headers))
+        # rows, headers = program.AllTableCounts()
+        # print(tabulate(rows, headers))
 
         # 2: Find the average number of activities per user.
-        rows, headers = program.AvgActivitiesPerUser()
+        # rows, headers = program.AvgActivitiesPerUser()
+        # print(tabulate(rows, headers))
+
+
+        # 3: Find the top 20 users with the highest number of activities.
+        rows,headers = program.Top20UsersWithMostActivities()
         print(tabulate(rows, headers))
 
+
         # 4: Find all users who have taken a taxi.
-        rows, headers = program.UsersTakenTaxi()
-        print(tabulate(rows, headers))
+        # rows, headers = program.UsersTakenTaxi()
+        # print(tabulate(rows, headers))
 
     except Exception as e:
         print("ERROR: Failed to use database:", e)
