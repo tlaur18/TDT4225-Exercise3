@@ -49,7 +49,6 @@ class GeolifeQueries:
             }
         ]
 
-
         result = user_collection.aggregate(pipeline)
 
         result_list = list(result)
@@ -69,6 +68,39 @@ class GeolifeQueries:
         return [(user['_id'],) for user in taxi_users], ("User ID",)
 
 
+    # 5: Find all types of transportation modes and count how many activities that are tagged with these transportation mode labels. Do not count the rows where the mode is null.
+    def TransportationModeCounts(self):
+
+        pipeline = [
+            {
+                # Filter away activities with None transportation modes
+                '$match':
+                {
+                    'transportation_mode': {'$ne': None}
+                }
+            },
+            {
+                # Group by transportation mode and count number of documents in each group
+                '$group':
+                {
+                    '_id': '$transportation_mode',
+                    'activity_count': {'$sum': 1}
+                }
+            },
+            {
+                # Sort in order of descending activity_count
+                '$sort':
+                {
+                    'activity_count': -1
+                }  
+            }
+        ]
+
+        result = self.db['Activity'].aggregate(pipeline)
+
+        return [r.values() for r in result], ("transportation_mode", "activity_count")
+
+
 def main():
     program = None
     try:
@@ -83,15 +115,17 @@ def main():
         # rows, headers = program.AvgActivitiesPerUser()
         # print(tabulate(rows, headers))
 
-
         # 3: Find the top 20 users with the highest number of activities.
-        rows,headers = program.Top20UsersWithMostActivities()
-        print(tabulate(rows, headers))
-
+        # rows,headers = program.Top20UsersWithMostActivities()
+        # print(tabulate(rows, headers))
 
         # 4: Find all users who have taken a taxi.
         # rows, headers = program.UsersTakenTaxi()
         # print(tabulate(rows, headers))
+
+        # 5: Find all types of transportation modes and count how many activities that are tagged with these transportation mode labels. Do not count the rows where the mode is null.
+        rows, headers = program.TransportationModeCounts()
+        print(tabulate(rows, headers))
 
     except Exception as e:
         print("ERROR: Failed to use database:", e)
