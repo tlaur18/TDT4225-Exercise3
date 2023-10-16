@@ -95,8 +95,6 @@ def walk():
                 df['activity_id'] = current_activity
                 df = df[['activity_id', 'lat', 'lon', 'altitude', 'date_days', 'date_time']]
 
-                activity_user_id = current_user
-
                 start_date_time = df['date_time'].iloc[0]
                 end_date_time = df['date_time'].iloc[-1]
 
@@ -116,7 +114,7 @@ def walk():
                 current_activity += 1
 
                 for activity_id, lat, lon, altitude, date_days, date_time in df.values.tolist():
-                    tp_dict = {'_id': trackpoint_id, 'lat': lat, 'lon': lon, 'altitude': altitude, 'date_days': date_days, 'date_time': date_time}
+                    tp_dict = {'_id': trackpoint_id, 'lat': lat, 'lon': lon, 'altitude': altitude, 'date_days': date_days, 'date_time': date_time, 'user_id': current_user, 'activity_id': activity_id}
                     activity_dict['trackpoints'].append(trackpoint_id)  # Add trackpoint_id to activity
                     trackpoints.append(tp_dict)
                     trackpoint_id += 1
@@ -129,6 +127,11 @@ def main():
     program = None
     try:
         program = Part1()
+        
+        # # Drop collections User, Activity, Trackpoint
+        program.drop_coll(collection_name="User")
+        program.drop_coll(collection_name="Activity")
+        program.drop_coll(collection_name="TrackPoint")
 
         # Create collections User, Activity, TrackPoint
         program.create_coll(collection_name="User")
