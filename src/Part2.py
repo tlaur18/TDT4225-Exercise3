@@ -209,7 +209,75 @@ class GeolifeQueries:
                 total_dist += dist
 
         return [(total_dist,)], ("DistanceWalkedByUser112In2008",)
+    
+
+    # 8: Find the top 20 users who have gained the most altitude meters.
+    def Top20AltitudeGainers(self):
+
+        result = []
+
+        pipeline = [
+            {
+                # Filter away trackpoints with invalid altitudes
+                '$match':
+                {
+                    'altitude': {'$ne': -777}
+                }
+            },
+            {
+                # Sort in order of user_id, activity_id, date_time
+                '$sort':
+                {
+                    'user_id': 1,
+                    'activity_id': 1,
+                    'date_time': 1
+                }  
+            },
+            {
+                # Include only the following relevant fields
+                '$project': {'user_id': 1, 'activity_id': 1, 'altitude': 1}
+            }
+        ]
+
+        trackpoints = self.db['TrackPoint'].aggregate(pipeline)
+        trackpoints = list(trackpoints)
+
+        current_user = None
+        current_activity = None
+        last_altitude = None
+        cumulative_altitude_gain = 0
+        for tp in trackpoints:
+
+            # If next trackpoint is from new user
+            if tp['user_id'] != current_user:
+                # Save result for user
+                result.append((current_user, cumulative_altitude_gain))
+
+                # Reset cumulative altitude gain for next user
+                cumulative_altitude_gain = 0
+
+                # Set current_user and current_activity and skip to next iteration
+                current_user = tp['user_id']
+                current_activity = tp['activity_id']
+                last_altitude = tp['altitude']
+                continue
+
+            # If next trackpoint is from new activity of the same user
+            if tp['activity_id'] != current_activity:
+                # Set current_user and current_activity and skip to next iteration
+                current_activity = tp['activity_id']
+                last_altitude = tp['altitude']
+                continue
+                
+            if tp['altitude'] > last_altitude:
+                cumulative_altitude_gain += (tp['altitude'] - last_altitude) / 3.281
+                last_altitude = tp['altitude']
         
+        # Sort result by altitude gain descending
+        result = sorted(result, key=lambda tup: tup[1], reverse=True)
+
+        return result[:20], ("id", "total_meters_gained")
+
     # 9: Find all users who have invalid activities, and the number of invalid activities per user
     def UsersWithInvalidActivities(self):
 
@@ -353,16 +421,21 @@ def main():
         # 7: Find the total distance (in km) walked in 2008, by user with id=112
         # rows, headers = program.DistanceWalkedByUser112In2008()
         # print(tabulate(rows, headers))
-
-        # 9: Find all users who have invalid activities, and the number of invalid activities per user
-        # rows, headers = program.UsersWithInvalidActivities()
+            
+        # TODO: Investigate the slight difference between these results and the ones from exercise 2. Maybe it has something to do with the altitudes sometimes having double values
+        # 8: Find the top 20 users who have gained the most altitude meters.
+        # rows, headers = program.Top20AltitudeGainers()
         # print(tabulate(rows, headers))
 
-        # 10: Find the users who have tracked an activity in the Forbidden City of Beijing.
-        rows, headers= program.UsersVisitedForbiddenCity()
+        # 9: Find all users who have invalid activities, and the number of invalid activities per user
+        rows, headers = program.UsersWithInvalidActivities()
         print(tabulate(rows, headers))
 
-            
+        # 10: Find the users who have tracked an activity in the Forbidden City of Beijing.
+        # rows, headers= program.UsersVisitedForbiddenCity()
+        # print(tabulate(rows, headers))
+
+
     except Exception as e:
         print("ERROR: Failed to use database:", e)
     finally:
