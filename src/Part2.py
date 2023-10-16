@@ -1,3 +1,4 @@
+import datetime
 from DbConnector import DbConnector
 from tabulate import tabulate
 from haversine import haversine, Unit
@@ -209,6 +210,102 @@ class GeolifeQueries:
 
         return [(total_dist,)], ("DistanceWalkedByUser112In2008",)
         
+    # 9: Find all users who have invalid activities, and the number of invalid activities per user
+    def UsersWithInvalidActivities(self):
+
+        trackpoints = self.db["TrackPoint"].find({},{"user_id":1, "activity_id": 1, "date_time" : 1 })
+
+
+        current_user = None
+        current_activity = None
+        last_date_time = None
+        invalidated = False
+        
+        result= {}
+        added = False
+
+        for object in trackpoints: 
+            vals = list(object.values())
+            *_, date_time, user_id, activity_id = vals
+            
+         
+            if user_id != current_user:
+                # New user reached, also new activity
+                print("now checking user ", user_id)
+                result[user_id] = 0
+                current_user = user_id
+                current_activity = None
+                invalidated = False
+                added = False
+
+            if activity_id == current_activity and invalidated:
+                if not added:
+                    result[user_id] += 1
+                    
+                    added = True
+                continue
+
+            if activity_id != current_activity:
+                # new activity reached, this needs to be treated as the previous datetime in the next iteration
+                # if activity is already invalidated, skip until we reach the next activity or user
+                current_activity = activity_id
+                last_date_time = date_time
+                invalidated = False
+                added = False
+                continue
+            
+            if date_time:
+                date_time = datetime.datetime.strptime(str(date_time),"%Y-%m-%d %H:%M:%S" )
+                last_date_time= datetime.datetime.strptime(str(last_date_time),"%Y-%m-%d %H:%M:%S")
+                time_diff = date_time - last_date_time
+                minutes_diff = minutes_diff = divmod(time_diff.total_seconds(), 60)[0]
+            
+            
+                if minutes_diff >= 5.0:
+                    invalidated = True
+        
+          
+        not_in = [x for x,y in result.items() if y == 0]
+        result = {x:y for x, y in result.items() if y != 0} # remove users with 0 invalid activities
+       
+        print(not_in)
+        return list(result.items()), ('user_id', '# of invalid activities')
+    
+
+    # 10: Find the users who have tracked an activity in the Forbidden City of Beijing.
+    # Note: Since there was zero tracpoints with the exact lat and lon given in the task, 
+    #  we search insted for the trackpoints that deviate by 0.0005 in either direction in either lat or lon
+    # 0.0005 was chosen since the coordinates were given with a precision of 0.01
+    def UsersVisitedForbiddenCity(self):
+        forbidden_lat = 39.916
+        forbidden_lon = 116.397
+        
+        pipeline = [
+            {
+                "$match": {
+                    "lat":
+                        { "$gte": forbidden_lat - 0.0005, "$lte": forbidden_lat + 0.0005},
+                    "lon":
+                        { "$gte": forbidden_lon - 0.0005, "$lte": forbidden_lon + 0.0005}     
+                },
+                
+            },
+            {
+                "$project":{
+                    "user_id": 1,
+                    "lat": 1,
+                    "lon": 1
+                }
+            }
+        ]
+
+        user_set = set()
+        for doc in self.db["TrackPoint"].aggregate(pipeline):
+            vals = list(doc.values())
+            *_, lat, lon, user_id = vals
+            user_set.add(user_id)
+
+        return [(user, ) for user in user_set], ("User that visited Forbidden City of Bejing",)
 
 def main():
     program = None
@@ -257,6 +354,15 @@ def main():
         # rows, headers = program.DistanceWalkedByUser112In2008()
         # print(tabulate(rows, headers))
 
+        # 9: Find all users who have invalid activities, and the number of invalid activities per user
+        # rows, headers = program.UsersWithInvalidActivities()
+        # print(tabulate(rows, headers))
+
+        # 10: Find the users who have tracked an activity in the Forbidden City of Beijing.
+        rows, headers= program.UsersVisitedForbiddenCity()
+        print(tabulate(rows, headers))
+
+            
     except Exception as e:
         print("ERROR: Failed to use database:", e)
     finally:
