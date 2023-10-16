@@ -1,5 +1,6 @@
 from DbConnector import DbConnector
 from tabulate import tabulate
+from haversine import haversine, Unit
 
 
 class GeolifeQueries:
@@ -101,6 +102,39 @@ class GeolifeQueries:
         return [r.values() for r in result], ("transportation_mode", "activity_count")
 
 
+    # 7: Find the total distance (in km) walked in 2008, by user with id=112
+    def DistanceWalkedByUser112In2008(self):
+
+        # Fetch the document of User 112
+        user112 = self.db['User'].find_one({'_id': '112'})
+
+        # Extract User 112's activity ids
+        activity_ids = user112['activities']
+
+        # From these ids, get activity documents with 'walk' as transportation_mode
+        walking_activities = self.db['Activity'].find({'_id': {'$in': activity_ids}, 'transportation_mode': 'walk'})
+
+        total_dist = 0
+        for a in walking_activities:
+            # Get trackpoints from this activity. Ensure they are sorted chronologically
+            trackpoints = self.db['TrackPoint'].find({'_id': {'$in': a['trackpoints']}}).sort('date_time', 1)
+            trackpoints = list(trackpoints)
+
+            # Calculate total distance
+            for i in range(len(trackpoints)-1):
+
+                # Skip if trackpoints not recorded in 2008
+                if trackpoints[i]['date_time'].year != 2008 or trackpoints[i+1]['date_time'].year != 2008:
+                    continue
+                
+                lat1, lon1 = trackpoints[i]['lat'], trackpoints[i]['lon']
+                lat2, lon2 = trackpoints[i+1]['lat'], trackpoints[i+1]['lon']
+                dist = haversine((lat1, lon1), (lat2, lon2), unit=Unit.KILOMETERS)
+                total_dist += dist
+
+        return [(total_dist,)], ("DistanceWalkedByUser112In2008",)
+
+
 def main():
     program = None
     try:
@@ -124,8 +158,12 @@ def main():
         # print(tabulate(rows, headers))
 
         # 5: Find all types of transportation modes and count how many activities that are tagged with these transportation mode labels. Do not count the rows where the mode is null.
-        rows, headers = program.TransportationModeCounts()
-        print(tabulate(rows, headers))
+        # rows, headers = program.TransportationModeCounts()
+        # print(tabulate(rows, headers))
+
+        # 7: Find the total distance (in km) walked in 2008, by user with id=112
+        # rows, headers = program.DistanceWalkedByUser112In2008()
+        # print(tabulate(rows, headers))
 
     except Exception as e:
         print("ERROR: Failed to use database:", e)

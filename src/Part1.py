@@ -110,13 +110,14 @@ def walk():
                         # Exact match found
                         transportation_mode = modes[end_datetimes.index(end_date_matchable)]
                 
-                activity_dict = {'_id': current_activity, 'transportation_mode': transportation_mode, 'start_date_time': start_date_time, 'end_date_time': end_date_time}
+                activity_dict = {'_id': current_activity, 'transportation_mode': transportation_mode, 'start_date_time': start_date_time, 'end_date_time': end_date_time, 'trackpoints': []}
                 activities.append(activity_dict)
                 user_dict['activities'].append(current_activity)
                 current_activity += 1
 
                 for activity_id, lat, lon, altitude, date_days, date_time in df.values.tolist():
                     tp_dict = {'_id': trackpoint_id, 'lat': lat, 'lon': lon, 'altitude': altitude, 'date_days': date_days, 'date_time': date_time}
+                    activity_dict['trackpoints'].append(trackpoint_id)  # Add trackpoint_id to activity
                     trackpoints.append(tp_dict)
                     trackpoint_id += 1
 
@@ -129,12 +130,13 @@ def main():
     try:
         program = Part1()
 
-        users, activities, trackpoints = walk()
-
         # Create collections User, Activity, TrackPoint
         program.create_coll(collection_name="User")
         program.create_coll(collection_name="Activity")
         program.create_coll(collection_name="TrackPoint")
+
+        # Read/clean data
+        users, activities, trackpoints = walk()
 
         # Insert data
         program.insert_documents(collection_name="User", data=users)
