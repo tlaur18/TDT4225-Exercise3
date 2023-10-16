@@ -1,5 +1,6 @@
 from DbConnector import DbConnector
 from tabulate import tabulate
+from haversine import haversine, Unit
 
 
 class GeolifeQueries:
@@ -49,7 +50,6 @@ class GeolifeQueries:
             }
         ]
 
-
         result = user_collection.aggregate(pipeline)
 
         result_list = list(result)
@@ -67,7 +67,42 @@ class GeolifeQueries:
         taxi_users = list(self.db['User'].find({'activities': {'$in': taxi_activities}}))
 
         return [(user['_id'],) for user in taxi_users], ("User ID",)
-    
+
+
+    # 5: Find all types of transportation modes and count how many activities that are tagged with these transportation mode labels. Do not count the rows where the mode is null.
+    def TransportationModeCounts(self):
+
+        pipeline = [
+            {
+                # Filter away activities with None transportation modes
+                '$match':
+                {
+                    'transportation_mode': {'$ne': None}
+                }
+            },
+            {
+                # Group by transportation mode and count number of documents in each group
+                '$group':
+                {
+                    '_id': '$transportation_mode',
+                    'activity_count': {'$sum': 1}
+                }
+            },
+            {
+                # Sort in order of descending activity_count
+                '$sort':
+                {
+                    'activity_count': -1
+                }  
+            }
+        ]
+
+        result = self.db['Activity'].aggregate(pipeline)
+
+        return [r.values() for r in result], ("transportation_mode", "activity_count")
+
+
+
 
     # 6a: Find the year with the most activities
     # note: we count an activity as belonging to the year it began in. If an activity begins in 2007, but ends in 2008 it still belongs only to 2007.
@@ -142,6 +177,37 @@ class GeolifeQueries:
 
         return [(years["_id"], years["totalSecondsRecorded"]/3600) for years in result], ("Year", "Number of hours recorded")
         
+    # 7: Find the total distance (in km) walked in 2008, by user with id=112
+    def DistanceWalkedByUser112In2008(self):
+
+        # Fetch the document of User 112
+        user112 = self.db['User'].find_one({'_id': '112'})
+
+        # Extract User 112's activity ids
+        activity_ids = user112['activities']
+
+        # From these ids, get activity documents with 'walk' as transportation_mode
+        walking_activities = self.db['Activity'].find({'_id': {'$in': activity_ids}, 'transportation_mode': 'walk'})
+
+        total_dist = 0
+        for a in walking_activities:
+            # Get trackpoints from this activity. Ensure they are sorted chronologically
+            trackpoints = self.db['TrackPoint'].find({'_id': {'$in': a['trackpoints']}}).sort('date_time', 1)
+            trackpoints = list(trackpoints)
+
+            # Calculate total distance
+            for i in range(len(trackpoints)-1):
+
+                # Skip if trackpoints not recorded in 2008
+                if trackpoints[i]['date_time'].year != 2008 or trackpoints[i+1]['date_time'].year != 2008:
+                    continue
+                
+                lat1, lon1 = trackpoints[i]['lat'], trackpoints[i]['lon']
+                lat2, lon2 = trackpoints[i+1]['lat'], trackpoints[i+1]['lon']
+                dist = haversine((lat1, lon1), (lat2, lon2), unit=Unit.KILOMETERS)
+                total_dist += dist
+
+        return [(total_dist,)], ("DistanceWalkedByUser112In2008",)
         
 
 def main():
@@ -158,14 +224,16 @@ def main():
         # rows, headers = program.AvgActivitiesPerUser()
         # print(tabulate(rows, headers))
 
-
         # 3: Find the top 20 users with the highest number of activities.
         # rows,headers = program.Top20UsersWithMostActivities()
         # print(tabulate(rows, headers))
 
-
         # 4: Find all users who have taken a taxi.
         # rows, headers = program.UsersTakenTaxi()
+        # print(tabulate(rows, headers))
+
+        # 5: Find all types of transportation modes and count how many activities that are tagged with these transportation mode labels. Do not count the rows where the mode is null.
+        # rows, headers = program.TransportationModeCounts()
         # print(tabulate(rows, headers))
 
 
@@ -174,14 +242,20 @@ def main():
         # print(tabulate(rows, headers))
 
         # 6b: Is this also the year with the most recorded hours?
-        rows, headers = program.YearWithMostActivities()
-        year_most_activities = rows[0][0]
-        print(tabulate(rows, headers))
-        rows, headers = program.yearWithMostRecordedHours()
-        year_most_active_time = rows[0][0]
-        print(tabulate(rows, headers))
-        print(f"The year with the highest numebr of activities is {year_most_activities}, the year with the most recorded hours or time is {year_most_active_time}")
-        print(f"Are they the same year? {year_most_activities == year_most_active_time}")
+        # rows, headers = program.YearWithMostActivities()
+        # year_most_activities = rows[0][0]
+        # print(tabulate(rows, headers))
+        # print()
+        # rows, headers = program.yearWithMostRecordedHours()
+        # year_most_active_time = rows[0][0]
+        # print(tabulate(rows, headers))
+        # print()
+        # print(f"The year with the highest numebr of activities is {year_most_activities}, the year with the most recorded hours or time is {year_most_active_time}")
+        # print(f"Are they the same year? {year_most_activities == year_most_active_time}")
+
+        # 7: Find the total distance (in km) walked in 2008, by user with id=112
+        # rows, headers = program.DistanceWalkedByUser112In2008()
+        # print(tabulate(rows, headers))
 
     except Exception as e:
         print("ERROR: Failed to use database:", e)
