@@ -1,7 +1,10 @@
 import datetime
+
+import pymongo
 from DbConnector import DbConnector
 from tabulate import tabulate
 from haversine import haversine, Unit
+from pymongo import GEOSPHERE
 
 
 class GeolifeQueries:
@@ -344,7 +347,7 @@ class GeolifeQueries:
     # Note: Since there was zero tracpoints with the exact lat and lon given in the task, 
     #  we search insted for the trackpoints that deviate by 0.0005 in either direction in either lat or lon
     # 0.0005 was chosen since the coordinates were given with a precision of 0.01
-    def UsersVisitedForbiddenCity(self):
+    def UsersVisitedForbiddenCityNaive(self):
         forbidden_lat = 39.916
         forbidden_lon = 116.397
         
@@ -374,6 +377,63 @@ class GeolifeQueries:
             user_set.add(user_id)
 
         return [(user, ) for user in user_set], ("User that visited Forbidden City of Bejing",)
+    
+    
+    # 10: Find the users who have tracked an activity in the Forbidden City of Beijing.
+    # Note: this method was an attempt at a more sophisticated approach to answering the query,
+    # by using mogodb's geospatial queries. This would allow for making a query that finds all trackpoints within
+    # a given radius of the location provided. This requires creating a new "2dSphere" index.
+    # However, we were unsucsessful in creating this query as it seemed to take to long and never finished creating the index
+    # both when creating it programmatically with pymongo but also when doing it directly in mongosh    
+    def UsersVisitedForbiddenCity(self):
+        forbidden_lon = 116.397
+        forbidden_lat = 39.916
+
+
+
+        # this piece of code was ran once to create another collection which conformed to the pattern needed to make geoqueries
+        # pipeline = [
+        #     {
+        #         "$project": {
+        #             "location": {
+        #                 "type": "Point",
+        #                 "coordinates": ["$lat", "$lon"]
+        #             },
+                    
+        #             "user_id": 1,
+        #             "activity_id": 1
+
+        #         }
+        #     },
+        #     { 
+        #         "$out": "TrackPointGeo" 
+                
+        #     }
+        # ]
+        # trackpoints = self.db["TrackPoint"].aggregate(pipeline)
+
+        trackpoints_geo = self.db["TrackPointGeo"]
+
+        print(trackpoints_geo)
+
+        #This line creates a new index to enable geo spatial queries, but it took to long to execute.
+        #trackpoints_geo.create_index([("location", GEOSPHERE)] )
+
+        # if the index had been created correctly this query would find all trackpoints which were a 100 meters or closer to the given point
+        close_tps = trackpoints_geo.find(
+            {
+                "location":
+                {
+                    "$near":
+                    {
+                        "$geometry": {"type": "Point",  "coordinates": [ forbidden_lon, forbidden_lat ] },
+                        "$minDistance": 100,
+                    }
+                }
+            }
+        )
+
+        return "didn't work"
 
 def main():
     program = None
@@ -428,12 +488,18 @@ def main():
         # print(tabulate(rows, headers))
 
         # 9: Find all users who have invalid activities, and the number of invalid activities per user
-        rows, headers = program.UsersWithInvalidActivities()
-        print(tabulate(rows, headers))
-
-        # 10: Find the users who have tracked an activity in the Forbidden City of Beijing.
-        # rows, headers= program.UsersVisitedForbiddenCity()
+        # rows, headers = program.UsersWithInvalidActivities()
         # print(tabulate(rows, headers))
+
+        # Naive 10: Find the users who have tracked an activity in the Forbidden City of Beijing.
+        # rows, headers= program.UsersVisitedForbiddenCityNaive()
+        # print(tabulate(rows, headers))
+
+        # Smarter? 10: Find the users who have tracked an activity in the Forbidden City of Beijing.
+        # Note: couldn't get this working, creating the index took way too long
+        # this code wont run
+        # result = UsersVisitedForbiddenCity()
+        # print(result)
 
 
     except Exception as e:
