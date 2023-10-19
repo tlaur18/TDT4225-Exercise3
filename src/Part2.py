@@ -495,57 +495,56 @@ def main():
         program = GeolifeQueries()
 
         # 1: How many users, activities and trackpoints are there in the dataset (after it is inserted into the database).
-        # rows, headers = program.AllTableCounts()
-        # print(tabulate(rows, headers))
+        rows, headers = program.AllTableCounts()
+        print(tabulate(rows, headers))
 
         # 2: Find the average number of activities per user.
-        # rows, headers = program.AvgActivitiesPerUser()
-        # print(tabulate(rows, headers))
+        rows, headers = program.AvgActivitiesPerUser()
+        print(tabulate(rows, headers))
 
         # 3: Find the top 20 users with the highest number of activities.
-        # rows,headers = program.Top20UsersWithMostActivities()
-        # print(tabulate(rows, headers))
+        rows,headers = program.Top20UsersWithMostActivities()
+        print(tabulate(rows, headers))
 
         # 4: Find all users who have taken a taxi.
-        # rows, headers = program.UsersTakenTaxi()
-        # print(tabulate(rows, headers))
+        rows, headers = program.UsersTakenTaxi()
+        print(tabulate(rows, headers))
 
         # 5: Find all types of transportation modes and count how many activities that are tagged with these transportation mode labels. Do not count the rows where the mode is null.
-        # rows, headers = program.TransportationModeCounts()
-        # print(tabulate(rows, headers))
+        rows, headers = program.TransportationModeCounts()
+        print(tabulate(rows, headers))
 
         # 6a: Find the year with the most activities
-        # rows, headers = program.YearWithMostActivities()
-        # print(tabulate(rows, headers))
+        rows, headers = program.YearWithMostActivities()
+        print(tabulate(rows, headers))
 
         # 6b: Is this also the year with the most recorded hours?
-        # rows, headers = program.YearWithMostActivities()
-        # year_most_activities = rows[0][0]
-        # print(tabulate(rows, headers))
-        # print()
-        # rows, headers = program.yearWithMostRecordedHours()
-        # year_most_active_time = rows[0][0]
-        # print(tabulate(rows, headers))
-        # print()
-        # print(f"The year with the highest number of activities is {year_most_activities}, the year with the most recorded hours or time is {year_most_active_time}")
-        # print(f"Are they the same year? {year_most_activities == year_most_active_time}")
+        rows, headers = program.YearWithMostActivities()
+        year_most_activities = rows[0][0]
+        print(tabulate(rows, headers))
+        print()
+        rows, headers = program.yearWithMostRecordedHours()
+        year_most_active_time = rows[0][0]
+        print(tabulate(rows, headers))
+        print()
+        print(f"The year with the highest number of activities is {year_most_activities}, the year with the most recorded hours or time is {year_most_active_time}")
+        print(f"Are they the same year? {year_most_activities == year_most_active_time}")
 
         # 7: Find the total distance (in km) walked in 2008, by user with id=112
-        # rows, headers = program.DistanceWalkedByUser112In2008()
-        # print(tabulate(rows, headers))
+        rows, headers = program.DistanceWalkedByUser112In2008()
+        print(tabulate(rows, headers))
             
-        # TODO: Investigate the slight difference between these results and the ones from exercise 2. Maybe it has something to do with the altitudes sometimes having double values
         # 8: Find the top 20 users who have gained the most altitude meters.
-        # rows, headers = program.Top20AltitudeGainers()
-        # print(tabulate(rows, headers))
+        rows, headers = program.Top20AltitudeGainers()
+        print(tabulate(rows, headers))
 
         # 9: Find all users who have invalid activities, and the number of invalid activities per user
-        # rows, headers = program.UsersWithInvalidActivities()
-        # print(tabulate(rows, headers))
+        rows, headers = program.UsersWithInvalidActivities()
+        print(tabulate(rows, headers))
 
         # Naive 10: Find the users who have tracked an activity in the Forbidden City of Beijing.
-        # rows, headers= program.UsersVisitedForbiddenCityNaive()
-        # print(tabulate(rows, headers))
+        rows, headers= program.UsersVisitedForbiddenCityNaive()
+        print(tabulate(rows, headers))
 
         # Smarter? 10: Find the users who have tracked an activity in the Forbidden City of Beijing.
         # Note: couldn't get this working, creating the index took way too long
