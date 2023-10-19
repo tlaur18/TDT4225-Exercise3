@@ -435,6 +435,59 @@ class GeolifeQueries:
 
         return "didn't work"
 
+    # 11: Find all users who have registered transportation_mode and their most used transportation_mode.
+    def UsersWithTransportationModes(self):
+
+        result = []
+        
+        # Get all User documents
+        users = self.db["User"].find({})
+
+        for user in users:
+            user_id, has_labels, activity_ids = user['_id'], user['has_labels'], user['activities']
+
+            # Skip if user has no registered transportation modes
+            if not has_labels:
+                continue
+
+            pipeline = [
+                {
+                    # Filter by particular User's activities and discard activities with None transportation_mode
+                    '$match':
+                    {
+                        '_id': {'$in': activity_ids},
+                        'transportation_mode': {'$ne': None}
+                    }
+                },
+                {
+                    # Group by transportation mode and count number of documents in each group
+                    '$group':
+                    {
+                        '_id': '$transportation_mode',
+                        'activity_count': {'$sum': 1}
+                    }
+                },
+                {
+                    # Sort in order of descending activity_count, then by '_id' (transportation_mode)
+                    '$sort':
+                    {
+                        'activity_count': -1,
+                        '_id': 1,
+                    }  
+                },
+                {
+                    # Limit to get the top transportation mode for each user
+                    '$limit': 1
+                }
+            ]
+
+            most_used_transport = list(self.db['Activity'].aggregate(pipeline))
+            if most_used_transport:
+                result.append((user_id, most_used_transport[0]['_id']))
+
+        return result, ("user_id", "most_used_transportation_mode")
+
+
 def main():
     program = None
     try:
@@ -460,7 +513,6 @@ def main():
         # 5: Find all types of transportation modes and count how many activities that are tagged with these transportation mode labels. Do not count the rows where the mode is null.
         # rows, headers = program.TransportationModeCounts()
         # print(tabulate(rows, headers))
-
 
         # 6a: Find the year with the most activities
         # rows, headers = program.YearWithMostActivities()
@@ -501,6 +553,9 @@ def main():
         # result = UsersVisitedForbiddenCity()
         # print(result)
 
+        # 11: Find all users who have registered transportation_mode and their most used transportation_mode.
+        rows, headers = program.UsersWithTransportationModes()
+        print(tabulate(rows, headers))
 
     except Exception as e:
         print("ERROR: Failed to use database:", e)
