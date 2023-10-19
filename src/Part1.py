@@ -1,7 +1,7 @@
-import os, re, json
+import os, re
 import pandas as pd
 from pathlib import Path
-from pprint import pprint
+from IPython.lib.pretty import pprint
 from DbConnector import DbConnector
 
 
@@ -28,7 +28,7 @@ class Part1:
         collection = self.db[collection_name]
         documents = collection.find({})
         for doc in documents[:5]: 
-            pprint(doc)
+            pprint(doc, max_seq_length=8)
         
     def show_coll(self):
         collections = self.client['geolife'].list_collection_names()
@@ -128,11 +128,6 @@ def main():
     try:
         program = Part1()
         
-        # # Drop collections User, Activity, Trackpoint
-        program.drop_coll(collection_name="User")
-        program.drop_coll(collection_name="Activity")
-        program.drop_coll(collection_name="TrackPoint")
-
         # Create collections User, Activity, TrackPoint
         program.create_coll(collection_name="User")
         program.create_coll(collection_name="Activity")
@@ -151,11 +146,6 @@ def main():
         program.fetch_documents(collection_name="User")
         program.fetch_documents(collection_name="Activity")
         program.fetch_documents(collection_name="TrackPoint")
-
-        # # Drop collections User, Activity, Trackpoint
-        # program.drop_coll(collection_name="User")
-        # program.drop_coll(collection_name="Activity")
-        # program.drop_coll(collection_name="TrackPoint")
         
     except Exception as e:
         print("ERROR: Failed to use database:", e)

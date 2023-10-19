@@ -527,7 +527,7 @@ def main():
         # year_most_active_time = rows[0][0]
         # print(tabulate(rows, headers))
         # print()
-        # print(f"The year with the highest numebr of activities is {year_most_activities}, the year with the most recorded hours or time is {year_most_active_time}")
+        # print(f"The year with the highest number of activities is {year_most_activities}, the year with the most recorded hours or time is {year_most_active_time}")
         # print(f"Are they the same year? {year_most_activities == year_most_active_time}")
 
         # 7: Find the total distance (in km) walked in 2008, by user with id=112
